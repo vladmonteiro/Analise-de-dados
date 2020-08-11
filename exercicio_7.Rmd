@@ -1,0 +1,116 @@
+---
+title: "Exercicio 7"
+author: "Alune"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+library(tidyverse)
+library(haven)
+library(ggplot2)
+library(ggbeeswarm)
+library(ggthemes)
+library(moderndive)
+library(dotwhisker)
+library(MASS)
+library(lmtest)
+library(car)
+
+```
+
+``` {r}
+
+B1 <- read_sav("b1.sav")
+
+B2 <-  B1 %>% 
+  filter(Q1607 <= 10, D9 < 9999998,  Q1501 <=10, Q18  <=10) %>%
+ mutate(Q1607 = as.numeric(Q1607))
+
+
+```
+### No exercício anterior foram feitos alguns modelos bivariados. Agora faça uma regressão multivariada mostrando como a nota atribuída a Jair Bolsonaro (variável Q1607) pode ser explicada pelas variáveis idade (D1A_ID), educação (D3_ESCOLA), renda (D9), nota atribuída ao PT (Q1501) e auto-atribuição ideológica (Q18) dos respondentes. Interprete o resultado a partir das informações dadas pelo sumário da regressão.
+
+```{r}
+
+rg0 <- lm(Q1607 ~ D1A_ID + D3_ESCOLA + D9 + Q1501 + Q18, data = B2)
+summary(rg0)
+
+```
+Nota-se que dos 5 preditores, apenas três (D3_ESCOLA, Q1501 E Q18) apresentam uma significância estatística considerável. As demais não têm p-valor satisfatório. A escolaridade aprsenta uma direção negativa, no caso cada eleveção em seu valor produz um recuo de 0,154 na aprovação de Bolsonaro. Por sua vez, Q1501 também tem uma direção negativa: para cada elevação unitária de seu valor, ocorre um redução de 0,415 no valor de Q1607. E por fim, Q18 tem uma direção positiva. Sendo assim, uma adição no seu valor aumenta em 0,32 a avalição de Bolsonaro.
+
+### Em que medida os resultados se mantém ou se alteram quando comparados com os resultados do exercício anterior, quando foram utilizadas apenas regressões bivariadas?
+
+Na maioria dos casos, há uma considerável variação nos resultados. Observa-se que a direção da correlção não se altera, exceto em um caso, mas por outro lado, o coeficiente se modifia em todos os casos. 
+            MULTIVARIADA   BIVARIADA 
+ D1A_ID      5.816e-03      0.025534
+ D3_ESCOLA  -1.543e-01     -0.11835  
+ D9         -3.067e-05      5.857e-06
+ Q1501       4.154e-01     -0.41118
+ Q18         3.244e-01      0.40941
+
+### A partir da exposição de gráficos e testes, avalie se o modelo se adequa aos pressupostos que uma regressão linear exige.
+
+Linearidade
+Nota-se que os gráfico não obedece aos paramêtros, na medida em que os resíduos estão dispersos de uma forma homôgena. 
+
+``` {r}
+
+plot(rg0, 1)
+
+```
+Homocestacidade 
+Não apresentou resultados que satisfaçam os pressupostos 
+
+``` {r} 
+bptest(rg0)
+ncvTest(rg0)
+
+plot(rg0, 3)
+
+```
+
+Autocorrelação entre os casos 
+Como o p-valor do teste é alto, não há respaldo para rejeitar a hipótese nula. Além disso, pelo gráfico, observa-se que os resultados estão dentro da linha tracejada.
+
+``` {r}
+acf(rg0$residuals)
+durbinWatsonTest(rg0)
+
+```
+
+Normalidade dos resíduos
+A julgar pelos resultados dos gráficos, se deveria dizer que o modelo não é adequado, visto que os resíduos não se encontram dispostos ao longo da linha. Por outro lado, o p-valor indica a possibilidade de se rejeitar a hipótese nula
+
+```{r}
+rstand <-studres(rg0)
+shapiro.test(rstand)
+
+plot(rg0, 2)
+``` 
+
+
+
+### Caso algum pressuposto não seja satisfeito, quais são as consequências específicas para o modelo estimado?
+
+
+A ausência de linearidade implica que a existência de um erro de especificação do modelo, logo os coneficientes são enviesados.Nesse caso, faz-se necessário modificaar as varíaveis. Por sua vez, a heterocedasticidade e distribuição irregular dos resíduos sugerem a inconsistência das estimativas.  
+
+
+### Considerando o 4o hurdle do livro *Fundamentals...*, faça um modelo de regressão extra adicionando uma variável **numérica** que foi omitida do modelo anterior, mas que possa ter relação causal com a variável dependente (e talvez alg uma associação com as independentes anteriores). Justifique a variável extra e analise o resultado. 
+
+```{r}
+
+ 
+rg1 <- lm(Q1607 ~ D1A_ID + D3_ESCOLA + D9 + Q1501 + Q18 + Q21, data = B2)
+get_regression_table(rg1)
+summary(rg1)
+```
+
+Escolhi a variável Q21, porque ela é de certa forma impactada e, ao mesmo tempo, reflete alguns aspectos captados pelas demais variáveis independendentes. A depender da renda, escolariade, afinidade ideológica etc., os respondentes podem ter percções distintas sobre o funcionamento da democracia.
+
+Apenas três variáveis apresentam uma significância estatística satisfatória (Escolaridade, avaliação sobre o PT e identificação ideológica). A significância do preditor adiciona, embora seja maior do de D9 e D!A_ID, não atende os pressupostos. Observa-se também que, com excelçao de Idade e identifcação ideológica, os demais preditores aprensetam uma direção negativa. 
+
+### Compare o resultado obtido com o modelo e conclusões anteriores.
+
+Os resultados convergem em alguns aspectos, entre os quais a direção das correlações. Esta se mantém igual em ambos os modelos. As mesmas variáves nos dois modelos aprsentam significância estatística satisfatória. Deve-se notar que a adição de uma nova variável não impactou profundamente os valores de coeficientes.  
